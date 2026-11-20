@@ -1,0 +1,28 @@
+{
+  "name": "openspec-grill",
+  "version": "1.0.0",
+  "description": "Project-level initializer for the OpenSpec + grill-me AI workflow across Antigravity, Claude Code, Codex, and Cursor.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "bin": {
+    "osg": "./bin/osg.js",
+    "openspec-grill": "./bin/osg.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md"
+  ],
+  "keywords": [
+    "openspec",
+    "grill-me",
+    "ai-workflow",
+    "antigravity",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
+  "license": "MIT"
+}
