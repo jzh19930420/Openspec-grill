@@ -7,13 +7,14 @@
     "node": ">=22.0.0"
   },
   "bin": {
-    "osg": "./bin/osg.js",
-    "openspec-grill": "./bin/osg.js"
+    "osg": "bin/osg.js",
+    "openspec-grill": "bin/osg.js"
   },
   "files": [
     "bin/",
     "src/",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "openspec",
@@ -24,5 +25,14 @@
     "codex",
     "cursor"
   ],
-  "license": "MIT"
+  "author": "zhehao.jin <a872282059@hotmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jzh19930420/Openspec-grill.git"
+  },
+  "homepage": "https://github.com/jzh19930420/Openspec-grill#readme",
+  "bugs": {
+    "url": "https://github.com/jzh19930420/Openspec-grill/issues"
+  }
 }

@@ -6,25 +6,22 @@
 
 ## 前置依赖
 
-```powershell
+```bash
 npm install -g @fission-ai/openspec@latest
 ```
 
-## 本机注册命令
+## 安装
 
-在本仓库目录执行一次：
-
-```powershell
-cd D:\WorkSpace\Code\Tools\openspec-grill
-npm link
+```bash
+npm install -g openspec-grill
 ```
 
-注册后全局提供 `osg` 与 `openspec-grill` 两个命令。换电脑时只需复制/克隆本目录再执行 `npm link`。
+安装后全局提供 `osg` 与 `openspec-grill` 两个命令；也可通过 `npx openspec-grill init` 免安装直接运行。
 
 ## 在任意新项目接入
 
-```powershell
-cd D:\path\to\your-project
+```bash
+cd /path/to/your-project
 osg init
 ```
 
