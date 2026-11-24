@@ -53,11 +53,45 @@ Each round the user answers reshapes the tree: settled decisions push the fronti
 `;
 }
 
+export function renderGitCommitSuggestionSkill() {
+  return `---
+name: git-commit-suggestion
+description: Analyze the repository's Git commit template and recent commit history to draft a matching git commit message for user reference after completing any task with repository changes. Never executes git commit or git push automatically.
+---
+
+Generate a ready-to-use \`git commit\` message suggestion that strictly matches the current repository's commit conventions.
+
+## Steps
+
+1. **Review current changes**: Summarize the actual scope of this task (run \`git status --short\` or \`git diff --stat\` if needed).
+2. **Detect the project's commit template & history style**:
+   - Check for an explicit commit template or linter config when present (e.g., \`git config --get commit.template\`, \`.gitmessage\`, \`commitlint.config.*\`, \`.czrc\`, \`CONTRIBUTING.md\`).
+   - Inspect recent non-merge commits via \`git log -n 10 --no-merges\` to observe real conventions:
+     - Prefix / type & scope format (e.g., \`feat(scope): ...\`, \`[JIRA-123] ...\`, emoji prefixes, bracketed tags).
+     - Language (English vs Chinese), capitalization, tense, and length.
+     - Multi-line body layout, bullet style, or required footers/ticket references.
+   - If the repository has no commit history or no consistent pattern, fall back to **Conventional Commits** (\`<type>(<optional scope>): <concise summary>\`) in the project's primary language.
+3. **Draft the commit message**:
+   - Match the observed template, prefix, language, and body style faithfully.
+   - Keep the subject concise and focused on what/why changed; include a short body only if the project convention uses one or the task spans multiple notable changes.
+   - If unrelated changes are mixed in the working tree, suggest splitting them into separate commit messages.
+   - If the template requires an unknown ticket/issue ID, use a clear placeholder (e.g., \`<TICKET-ID>\`) rather than inventing one.
+
+## Output & Guardrails
+
+- Present the suggested commit message in a fenced \`text\` block at the end of the response so the user can copy it directly.
+- **Read-only**: Never run \`git add\`, \`git commit\`, or \`git push\` unless the user explicitly asks to commit.
+`;
+}
+
+export const MANAGED_SKILLS = [
+  { name: "grill-me", render: renderGrillMeSkill },
+  { name: "git-commit-suggestion", render: renderGitCommitSuggestionSkill },
+];
+
 export function renderAgentsManagedBlock() {
   return `${AGENTS_START_MARKER}
 ## AI 工作流（OpenSpec + grill-me）
-
-本项目采用 **OpenSpec + \`grill-me\`** 作为 AI 协作工作流：
 
 ### 动码前复杂度分流与询问门禁
 
@@ -76,13 +110,11 @@ export function renderAgentsManagedBlock() {
   3. 跳过工作流直接修改。
   待用户明确回复后再执行对应分支。
 
-### 标准执行步骤（进入工作流后）
+### 技能路由与常驻约定
 
-1. **\`grill-me\`（无状态设计树访谈）**：按轮次收敛需求边界、取舍和验收标准；凡是能通过代码检索（有 \`.codegraph/\` 时优先 \`codegraph_explore\`）、读源码或 \`openspec/specs/\` 确认的技术事实须先自行核查，不向用户问事实性问题，也不在仓库中额外创建 \`GLOSSARY.md\` / \`docs/adr/\`。
-2. **\`/openspec-propose\`**：达成共识后在 \`openspec/changes/<change>/\` 下生成规划产物（\`proposal.md\`、delta \`specs/\`、\`design.md\`、\`tasks.md\`），等待用户确认，不自动进入改码。
-3. **\`/openspec-apply-change\` → \`/openspec-archive-change\`**：用户确认后逐项实施并验证；验收通过后归档，将增量规范合并回 \`openspec/specs/\`。
-
-- **系统规范真相源**：核心模块契约沉淀在 \`openspec/specs/\`，配置在 \`openspec/config.yaml\`。修改相关模块前先读对应 \`openspec/specs/<capability>/spec.md\`。
+- **工作流链路**：进入工作流后依次按对应技能执行：\`grill-me\` → \`/openspec-propose\`（生成规划后等待确认，不自动改码）→ \`/openspec-apply-change\` → \`/openspec-archive-change\`。
+- **规范真相源**：核心模块契约沉淀在 \`openspec/specs/\`（配置在 \`openspec/config.yaml\`），修改相关模块前先读对应 \`openspec/specs/<capability>/spec.md\`。
+- **任务收尾提交建议**：每次涉及仓库文件变更的任务完成后，调用 \`git-commit-suggestion\` 技能生成建议的 \`git commit\` 内容供参考（不擅自执行 \`git commit\` / \`git push\`）。
 ${AGENTS_END_MARKER}`;
 }
 
@@ -123,10 +155,10 @@ operations:
     guidance:
       - 实施前先阅读相关 openspec/specs/ 与受影响代码，避免破坏已有契约。
       - 完成后执行项目构建或测试验证，如实汇报结果与未自动化的验收项。
-      - 不要擅自执行 git commit / git push 或未经授权的数据库写操作。
+      - 不要擅自执行 git commit / git push 或未经授权的数据库写操作；任务完成后按 git-commit-suggestion 技能给出建议的提交信息供参考。
   archive:
     guidance:
       - 归档前运行 openspec validate --specs --strict 确认主规范有效。
-      - 汇总本次合并到 openspec/specs/ 的变更，将 Git 提交交由用户决定。
+      - 汇总本次合并到 openspec/specs/ 的变更，按 git-commit-suggestion 技能给出建议的提交信息供参考，将 Git 提交交由用户决定。
 `;
 }

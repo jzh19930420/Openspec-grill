@@ -7,10 +7,10 @@ import {
   CLAUDE_STUB_MARKER,
   GITIGNORE_END_MARKER,
   GITIGNORE_START_MARKER,
+  MANAGED_SKILLS,
   OPENSPEC_SKILL_DIRS,
   renderAgentsManagedBlock,
   renderClaudeStub,
-  renderGrillMeSkill,
   renderOpenSpecConfig,
 } from "./templates.js";
 import {
@@ -43,7 +43,7 @@ function parseTools(toolsCsv) {
     .filter(Boolean);
 }
 
-function getGrillSkillRoots(targetDir, toolsList) {
+function getManagedSkillRoots(targetDir, toolsList) {
   const roots = new Set();
   if (toolsList && toolsList.length > 0) {
     const includesClaude = toolsList.includes("claude") || toolsList.includes("all");
@@ -205,13 +205,14 @@ export async function cmdInit(targetDir, options) {
     console.log("• 保留已自定义的 openspec/config.yaml（传 --force 可重置）");
   }
 
-  // 3. Install grill-me skill
-  const skillRoots = getGrillSkillRoots(targetDir, toolsList);
-  const skillContent = renderGrillMeSkill();
+  // 3. Install managed skills
+  const skillRoots = getManagedSkillRoots(targetDir, toolsList);
   for (const root of skillRoots) {
-    const skillPath = path.join(root, "grill-me", "SKILL.md");
-    writeFileEnsureDir(skillPath, skillContent, dryRun);
-    console.log(`✔ 已写入技能: ${path.relative(targetDir, skillPath)}`);
+    for (const skill of MANAGED_SKILLS) {
+      const skillPath = path.join(root, skill.name, "SKILL.md");
+      writeFileEnsureDir(skillPath, skill.render(), dryRun);
+      console.log(`✔ 已写入技能: ${path.relative(targetDir, skillPath)}`);
+    }
   }
 
   // 4. Upsert managed block in AGENTS.md
@@ -281,13 +282,14 @@ export async function cmdUpdate(targetDir, options) {
   }
 
   const toolsList = tools ? parseTools(tools) : null;
-  const skillRoots = getGrillSkillRoots(targetDir, toolsList);
-  const skillContent = renderGrillMeSkill();
+  const skillRoots = getManagedSkillRoots(targetDir, toolsList);
 
   for (const root of skillRoots) {
-    const skillPath = path.join(root, "grill-me", "SKILL.md");
-    writeFileEnsureDir(skillPath, skillContent, dryRun);
-    console.log(`✔ 已刷新技能: ${path.relative(targetDir, skillPath)}`);
+    for (const skill of MANAGED_SKILLS) {
+      const skillPath = path.join(root, skill.name, "SKILL.md");
+      writeFileEnsureDir(skillPath, skill.render(), dryRun);
+      console.log(`✔ 已刷新技能: ${path.relative(targetDir, skillPath)}`);
+    }
   }
 
   const agentsPath = path.join(targetDir, "AGENTS.md");
@@ -366,16 +368,28 @@ export async function cmdDoctor(targetDir) {
     }
   }
 
-  // 4. grill-me & openspec-* skills
-  const agentsGrill = path.join(targetDir, ".agents", "skills", "grill-me", "SKILL.md");
+  // 4. Managed skills & openspec-* skills
+  for (const skill of MANAGED_SKILLS) {
+    const skillPath = path.join(targetDir, ".agents", "skills", skill.name, "SKILL.md");
+    check(
+      existsSync(skillPath),
+      `.agents/skills/${skill.name}/SKILL.md`,
+      existsSync(skillPath) ? "就绪" : "缺失"
+    );
+  }
   const agentsPropose = path.join(targetDir, ".agents", "skills", "openspec-propose", "SKILL.md");
-  check(existsSync(agentsGrill), ".agents/skills/grill-me/SKILL.md", existsSync(agentsGrill) ? "就绪" : "缺失");
   check(existsSync(agentsPropose), ".agents/skills/openspec-propose/SKILL.md", existsSync(agentsPropose) ? "就绪" : "缺失");
 
   if (existsSync(path.join(targetDir, ".claude"))) {
-    const claudeGrill = path.join(targetDir, ".claude", "skills", "grill-me", "SKILL.md");
+    for (const skill of MANAGED_SKILLS) {
+      const skillPath = path.join(targetDir, ".claude", "skills", skill.name, "SKILL.md");
+      check(
+        existsSync(skillPath),
+        `.claude/skills/${skill.name}/SKILL.md`,
+        existsSync(skillPath) ? "就绪" : "缺失"
+      );
+    }
     const claudePropose = path.join(targetDir, ".claude", "skills", "openspec-propose", "SKILL.md");
-    check(existsSync(claudeGrill), ".claude/skills/grill-me/SKILL.md", existsSync(claudeGrill) ? "就绪" : "缺失");
     check(existsSync(claudePropose), ".claude/skills/openspec-propose/SKILL.md", existsSync(claudePropose) ? "就绪" : "缺失");
   }
 
@@ -403,14 +417,15 @@ export async function cmdUninstall(targetDir, options) {
 
   console.log(`${dryRun ? "[dry-run] " : ""}正在卸载 OpenSpec + grill-me 工作流: ${targetDir}`);
 
-  // 1. Remove grill-me & openspec-* skills
+  // 1. Remove managed & openspec-* skills
   const skillRoots = [
     path.join(targetDir, ".agents", "skills"),
     path.join(targetDir, ".claude", "skills"),
   ];
+  const managedSkillNames = MANAGED_SKILLS.map((s) => s.name);
   for (const root of skillRoots) {
     if (!existsSync(root)) continue;
-    for (const skillName of ["grill-me", ...OPENSPEC_SKILL_DIRS]) {
+    for (const skillName of [...managedSkillNames, ...OPENSPEC_SKILL_DIRS]) {
       const skillDir = path.join(root, skillName);
       if (removeIfExists(skillDir, dryRun)) {
         console.log(`✔ 已移除: ${path.relative(targetDir, skillDir)}`);

@@ -22,7 +22,7 @@ function printHelp() {
 
 用法:
   osg init [path] [options]       在目标项目初始化 OpenSpec + grill-me 工作流
-  osg update [path] [options]     更新托管的 grill-me 技能、AGENTS.md 区块与 OpenSpec 技能
+  osg update [path] [options]     更新托管技能、AGENTS.md 区块与 OpenSpec 技能
   osg doctor [path]               检查当前项目工作流接入与规范健康状态
   osg uninstall [path] [options]  移除工作流技能与托管区块（默认保留 openspec/ 沉淀内容）
   osg --version | -v              显示版本
